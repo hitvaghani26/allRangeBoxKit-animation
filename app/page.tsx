@@ -126,7 +126,20 @@ export default function Home() {
             role="img"
           />
           <p className="text-xs text-white/45 sm:text-sm">
-            Keep scrolling to scrub through all 81 frames.
+            Keep scrolling to scrub through all 81 frames. This preview uses compressed
+            image.
+          </p>
+          <p className="text-xs text-white/45 sm:text-sm">
+            You can preview the source{" "}
+            <a
+              href="/newimage2.png"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-white/70"
+            >
+              image
+            </a>
+            .
           </p>
         </div>
       </section>
