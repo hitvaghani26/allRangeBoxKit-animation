@@ -14,6 +14,7 @@ const DEFAULT_FRAME_ROWS = 8;
 type GuiParams = {
   scene1ScrollVh: number;
   scene2ScrollVh: number;
+  scene2bScrollVh: number;
   scene3ScrollVh: number;
   boxCols: number;
   boxRows: number;
@@ -35,6 +36,8 @@ export default function Home() {
   const boxSpriteRef = useRef<HTMLDivElement>(null);
   const sequenceSectionRef = useRef<HTMLDivElement>(null);
   const sequenceSpriteRef = useRef<HTMLDivElement>(null);
+  const sequence2SectionRef = useRef<HTMLDivElement>(null);
+  const sequence2SpriteRef = useRef<HTMLDivElement>(null);
   const customSectionRef = useRef<HTMLDivElement>(null);
   const customSpriteRef = useRef<HTMLDivElement>(null);
   const customFileInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +45,7 @@ export default function Home() {
   const guiParams = useRef<GuiParams>({
     scene1ScrollVh: 700,
     scene2ScrollVh: 600,
+    scene2bScrollVh: 600,
     scene3ScrollVh: 500,
     boxCols: DEFAULT_FRAME_COLUMNS,
     boxRows: DEFAULT_FRAME_ROWS,
@@ -53,7 +57,7 @@ export default function Home() {
     customFrameCount: 81,
     boxScrub: 0.5,
     sequenceScrub: 0.25,
-    customScrub: 0.5,
+    customScrub: 0,
     showMarkers: false,
   });
 
@@ -96,13 +100,15 @@ export default function Home() {
         });
       },
     };
-    gui.add(globalActions, "updateParameters").name("Update parameters (all 3 scenes)");
+    gui.add(globalActions, "updateParameters").name("Update parameters (all scenes)");
 
     const f1 = gui.addFolder("Scene 1 — Box");
     f1.add(p, "scene1ScrollVh", 200, 1200, 10).name("scroll height (svh)").onChange(bumpGui);
     f1.add(p, "boxCols", 1, 16, 1).name("columns").onChange(bumpGui);
     f1.add(p, "boxRows", 1, 16, 1).name("rows").onChange(bumpGui);
-    f1.add(p, "boxScrub", 0, 2, 0.05).name("scrub (0 = smooth)").onChange(bumpGui);
+    f1.add(p, "boxScrub", 0, 2, 0.05)
+      .name("scrub lag (s), 0 = instant")
+      .onFinishChange(bumpGui);
 
     const f2 = gui.addFolder("Scene 2 — Sequence");
     f2.add(p, "scene2ScrollVh", 200, 1200, 10).name("scroll height (svh)").onChange(bumpGui);
@@ -112,14 +118,21 @@ export default function Home() {
       .add(p, "sequenceFrameCount", 1, 81, 1)
       .name("frame count")
       .onChange(bumpGui);
-    f2.add(p, "sequenceScrub", 0, 2, 0.05).name("scrub (0 = smooth)").onChange(bumpGui);
+    f2.add(p, "sequenceScrub", 0, 2, 0.05)
+      .name("scrub lag (s), 0 = instant")
+      .onFinishChange(bumpGui);
 
-    const f3 = gui.addFolder("Scene 3 — Custom upload");
+    const f2b = gui.addFolder("Scene 2b — Sequence (4 MB)");
+    f2b.add(p, "scene2bScrollVh", 200, 1200, 10).name("scroll height (svh)").onChange(bumpGui);
+
+    const f3 = gui.addFolder("Scene 4 — Custom upload");
     f3.add(p, "scene3ScrollVh", 200, 1200, 10).name("scroll height (svh)").onChange(bumpGui);
     f3.add(p, "customCols", 1, 16, 1).name("columns (grid)").onChange(bumpGui);
     f3.add(p, "customRows", 1, 16, 1).name("rows (grid)").onChange(bumpGui);
     f3.add(p, "customFrameCount", 1, 144, 1).name("frame count").onChange(bumpGui);
-    f3.add(p, "customScrub", 0, 2, 0.05).name("scrub (0 = smooth)").onChange(bumpGui);
+    f3.add(p, "customScrub", 0, 2, 0.05)
+      .name("scrub lag (s), 0 = instant")
+      .onFinishChange(bumpGui);
 
     const scene3FileActions = {
       chooseImage() {
@@ -136,6 +149,7 @@ export default function Home() {
 
     f1.open();
     f2.open();
+    f2b.open();
     f3.open();
 
     return () => gui.destroy();
@@ -147,7 +161,8 @@ export default function Home() {
       const ctx = gsap.context(() => {
         ScrollTrigger.config({ ignoreMobileResize: true });
 
-        const scrubValue = (v: number) => (v <= 0 ? true : v);
+        /** GSAP ScrollTrigger: 0 = instant follow; >0 = smoothing lag in seconds. */
+        const scrubValue = (v: number) => (v <= 0 ? 0 : v);
 
         const setupSpriteAnimation = (
           section: HTMLDivElement | null,
@@ -156,8 +171,10 @@ export default function Home() {
           frameRows: number,
           reverse: boolean,
           frameCount: number | undefined,
-          scrub: number | boolean,
+          scrub: number,
           markers: boolean,
+          /** Drive frames from ScrollTrigger progress (fixes reverse-scroll desync with scrub smoothing). */
+          syncFrameFromScrollProgress = false,
         ) => {
           if (!section || !sprite) return;
 
@@ -179,19 +196,30 @@ export default function Home() {
 
           renderFrame();
 
+          const scrollTriggerConfig: GSAPTweenVars["scrollTrigger"] = {
+            trigger: section,
+            start: "top top",
+            end: "bottom bottom",
+            scrub,
+            markers,
+            anticipatePin: 0,
+            invalidateOnRefresh: true,
+            fastScrollEnd: true,
+          };
+
+          if (syncFrameFromScrollProgress) {
+            scrollTriggerConfig.onUpdate = (self) => {
+              const span = Math.max(0, totalFrames - 1);
+              frameState.frame = self.progress * span;
+              renderFrame();
+            };
+          }
+
           gsap.to(frameState, {
             frame: reverse ? 0 : totalFrames - 1,
             ease: "none",
-            onUpdate: renderFrame,
-            scrollTrigger: {
-              trigger: section,
-              start: "top top",
-              end: "bottom bottom",
-              scrub,
-              markers,
-              anticipatePin: 1,
-              invalidateOnRefresh: true,
-            },
+            onUpdate: syncFrameFromScrollProgress ? undefined : renderFrame,
+            scrollTrigger: scrollTriggerConfig,
           });
         };
 
@@ -215,6 +243,16 @@ export default function Home() {
           scrubValue(p.sequenceScrub),
           p.showMarkers,
         );
+        setupSpriteAnimation(
+          sequence2SectionRef.current,
+          sequence2SpriteRef.current,
+          p.sequenceCols,
+          p.sequenceRows,
+          false,
+          p.sequenceFrameCount,
+          scrubValue(p.sequenceScrub),
+          p.showMarkers,
+        );
 
         if (customImageUrl) {
           setupSpriteAnimation(
@@ -226,6 +264,7 @@ export default function Home() {
             p.customFrameCount,
             scrubValue(p.customScrub),
             p.showMarkers,
+            true,
           );
         }
 
@@ -299,9 +338,10 @@ export default function Home() {
         <div className="sticky top-0 flex h-svh flex-col items-center justify-center gap-8 px-6 text-center">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.28em] text-white/60">Scene 02</p>
-            <h2 className="text-2xl font-semibold sm:text-4xl">OrangeKit Sequence</h2>
+            <h2 className="text-2xl font-semibold sm:text-4xl">OrangeKit Sequence (2 MB)</h2>
             <p className="max-w-xl text-sm text-white/70 sm:text-base">
-              Tube to bag to box — scroll to scrub the full sequence.
+              Tube to bag to box — scroll to scrub the 2 MB sprite (columns, rows, and frames match
+              Scene 2b).
             </p>
           </div>
           <div
@@ -309,7 +349,7 @@ export default function Home() {
             className="w-[min(84vw,420px)] rounded-2xl border border-white/10 bg-no-repeat shadow-[0_20px_60px_rgba(0,0,0,0.5)] will-change-[background-position]"
             style={{
               aspectRatio: "1 / 1",
-              backgroundImage: "url('/img_sequence.webp')",
+              backgroundImage: "url('/img_sequence_2mb.webp')",
               backgroundSize: `${p.sequenceCols * 100}% ${p.sequenceRows * 100}%`,
             }}
             aria-label="OrangeKit packaging sequence animation"
@@ -322,14 +362,57 @@ export default function Home() {
           <p className="text-xs text-white/45 sm:text-sm">
             You can preview the source{" "}
             <a
-              href="/img_sequence.webp"
+              href="/img_sequence_2mb.webp"
               target="_blank"
               rel="noreferrer"
               className="underline underline-offset-2 hover:text-white/70"
             >
               image
             </a>
-            . Keep scrolling for Scene 3.
+            . Keep scrolling for the 4 MB variant.
+          </p>
+        </div>
+      </section>
+
+      <section
+        ref={sequence2SectionRef}
+        className="relative"
+        style={{ height: `${p.scene2bScrollVh}svh` }}
+      >
+        <div className="sticky top-0 flex h-svh flex-col items-center justify-center gap-8 px-6 text-center">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.28em] text-white/60">Scene 03</p>
+            <h2 className="text-2xl font-semibold sm:text-4xl">OrangeKit Sequence (4 MB)</h2>
+            <p className="max-w-xl text-sm text-white/70 sm:text-base">
+              Same animation grid as Scene 02 — higher-quality sprite sheet for comparison.
+            </p>
+          </div>
+          <div
+            ref={sequence2SpriteRef}
+            className="w-[min(84vw,420px)] rounded-2xl border border-white/10 bg-no-repeat shadow-[0_20px_60px_rgba(0,0,0,0.5)] will-change-[background-position]"
+            style={{
+              aspectRatio: "1 / 1",
+              backgroundImage: "url('/img_sequence_4mb.webp')",
+              backgroundSize: `${p.sequenceCols * 100}% ${p.sequenceRows * 100}%`,
+            }}
+            aria-label="OrangeKit packaging sequence animation (4 MB)"
+            role="img"
+          />
+          <p className="text-xs text-white/45 sm:text-sm">
+            {p.sequenceFrameCount} frames ({p.sequenceCols} × {p.sequenceRows}). Scroll height is set in
+            the panel under Scene 2b.
+          </p>
+          <p className="text-xs text-white/45 sm:text-sm">
+            Preview the{" "}
+            <a
+              href="/img_sequence_4mb.webp"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-white/70"
+            >
+              4 MB image
+            </a>
+            . Keep scrolling for custom upload.
           </p>
         </div>
       </section>
@@ -341,7 +424,7 @@ export default function Home() {
       >
         <div className="sticky top-0 flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-8 text-center">
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.28em] text-white/60">Scene 03</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-white/60">Scene 04</p>
             <h2 className="text-2xl font-semibold sm:text-4xl">Custom sprite</h2>
             <p className="max-w-xl text-sm text-white/70 sm:text-base">
               Upload a sprite sheet in the panel, set columns × rows and frame count to match your
