@@ -15,6 +15,7 @@ type GuiParams = {
   scene1ScrollVh: number;
   scene2ScrollVh: number;
   scene2bScrollVh: number;
+  sceneOriginalScrollVh: number;
   scene3ScrollVh: number;
   boxCols: number;
   boxRows: number;
@@ -38,6 +39,8 @@ export default function Home() {
   const sequenceSpriteRef = useRef<HTMLDivElement>(null);
   const sequence2SectionRef = useRef<HTMLDivElement>(null);
   const sequence2SpriteRef = useRef<HTMLDivElement>(null);
+  const sequenceOriginalSectionRef = useRef<HTMLDivElement>(null);
+  const sequenceOriginalSpriteRef = useRef<HTMLDivElement>(null);
   const customSectionRef = useRef<HTMLDivElement>(null);
   const customSpriteRef = useRef<HTMLDivElement>(null);
   const customFileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +49,7 @@ export default function Home() {
     scene1ScrollVh: 700,
     scene2ScrollVh: 600,
     scene2bScrollVh: 600,
+    sceneOriginalScrollVh: 600,
     scene3ScrollVh: 500,
     boxCols: DEFAULT_FRAME_COLUMNS,
     boxRows: DEFAULT_FRAME_ROWS,
@@ -125,7 +129,10 @@ export default function Home() {
     const f2b = gui.addFolder("Scene 2b — Sequence (4 MB)");
     f2b.add(p, "scene2bScrollVh", 200, 1200, 10).name("scroll height (svh)").onChange(bumpGui);
 
-    const f3 = gui.addFolder("Scene 4 — Custom upload");
+    const f2c = gui.addFolder("Scene 4 — Original (~7 MB)");
+    f2c.add(p, "sceneOriginalScrollVh", 200, 1200, 10).name("scroll height (svh)").onChange(bumpGui);
+
+    const f3 = gui.addFolder("Scene 5 — Custom upload");
     f3.add(p, "scene3ScrollVh", 200, 1200, 10).name("scroll height (svh)").onChange(bumpGui);
     f3.add(p, "customCols", 1, 16, 1).name("columns (grid)").onChange(bumpGui);
     f3.add(p, "customRows", 1, 16, 1).name("rows (grid)").onChange(bumpGui);
@@ -150,6 +157,7 @@ export default function Home() {
     f1.open();
     f2.open();
     f2b.open();
+    f2c.open();
     f3.open();
 
     return () => gui.destroy();
@@ -246,6 +254,16 @@ export default function Home() {
         setupSpriteAnimation(
           sequence2SectionRef.current,
           sequence2SpriteRef.current,
+          p.sequenceCols,
+          p.sequenceRows,
+          false,
+          p.sequenceFrameCount,
+          scrubValue(p.sequenceScrub),
+          p.showMarkers,
+        );
+        setupSpriteAnimation(
+          sequenceOriginalSectionRef.current,
+          sequenceOriginalSpriteRef.current,
           p.sequenceCols,
           p.sequenceRows,
           false,
@@ -412,6 +430,50 @@ export default function Home() {
             >
               4 MB image
             </a>
+            . Keep scrolling for the original (~7 MB).
+          </p>
+        </div>
+      </section>
+
+      <section
+        ref={sequenceOriginalSectionRef}
+        className="relative"
+        style={{ height: `${p.sceneOriginalScrollVh}svh` }}
+      >
+        <div className="sticky top-0 flex h-svh flex-col items-center justify-center gap-8 px-6 text-center">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.28em] text-white/60">Scene 04</p>
+            <h2 className="text-2xl font-semibold sm:text-4xl">OrangeKit Sequence (original ~7 MB)</h2>
+            <p className="max-w-xl text-sm text-white/70 sm:text-base">
+              Full-quality sprite sheet — same grid and frame count as Scenes 02–03 (Scene 2 in the
+              panel).
+            </p>
+          </div>
+          <div
+            ref={sequenceOriginalSpriteRef}
+            className="w-[min(84vw,420px)] rounded-2xl border border-white/10 bg-no-repeat shadow-[0_20px_60px_rgba(0,0,0,0.5)] will-change-[background-position]"
+            style={{
+              aspectRatio: "1 / 1",
+              backgroundImage: "url('/img_sequence_original.webp')",
+              backgroundSize: `${p.sequenceCols * 100}% ${p.sequenceRows * 100}%`,
+            }}
+            aria-label="OrangeKit packaging sequence animation (original)"
+            role="img"
+          />
+          <p className="text-xs text-white/45 sm:text-sm">
+            {p.sequenceFrameCount} frames ({p.sequenceCols} × {p.sequenceRows}). Scroll height: Scene 4
+            in the panel.
+          </p>
+          <p className="text-xs text-white/45 sm:text-sm">
+            Open the{" "}
+            <a
+              href="/img_sequence_original.webp"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-white/70"
+            >
+              original image
+            </a>
             . Keep scrolling for custom upload.
           </p>
         </div>
@@ -424,7 +486,7 @@ export default function Home() {
       >
         <div className="sticky top-0 flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-8 text-center">
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.28em] text-white/60">Scene 04</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-white/60">Scene 05</p>
             <h2 className="text-2xl font-semibold sm:text-4xl">Custom sprite</h2>
             <p className="max-w-xl text-sm text-white/70 sm:text-base">
               Upload a sprite sheet in the panel, set columns × rows and frame count to match your
@@ -453,7 +515,7 @@ export default function Home() {
           />
           {!customImageUrl ? (
             <p className="max-w-md text-xs text-white/50">
-              No image yet — use <span className="text-white/70">Scene 3 — Custom upload</span> →{" "}
+              No image yet — use <span className="text-white/70">Scene 5 — Custom upload</span> →{" "}
               <span className="text-white/70">Choose image…</span> in the floating panel.
             </p>
           ) : (
