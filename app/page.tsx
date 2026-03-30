@@ -160,7 +160,17 @@ export default function Home() {
     f2c.open();
     f3.open();
 
-    return () => gui.destroy();
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const syncGuiVisibility = () => {
+      gui.domElement.style.display = mq.matches ? "none" : "";
+    };
+    syncGuiVisibility();
+    mq.addEventListener("change", syncGuiVisibility);
+
+    return () => {
+      mq.removeEventListener("change", syncGuiVisibility);
+      gui.destroy();
+    };
   }, []);
 
   useGSAP(

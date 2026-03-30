@@ -25,3 +25,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* lil-gui: root uses .lil-gui.lil-root { display: flex } — must match that specificity + !important */
+@media (max-width: 1023px) {
+  .lil-gui.lil-root {
+    display: none !important;
+  }
+}
