@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../node_modules/lil-gui/dist/lil-gui.min.css";
 
 :root {
   --background: #ffffff;
