@@ -11,6 +11,8 @@ gsap.registerPlugin(useGSAP, ScrollTrigger);
 const DEFAULT_FRAME_COLUMNS = 9;
 const DEFAULT_FRAME_ROWS = 8;
 
+const SCENE2_SPRITE_PATH = "/customeimage.png";
+
 type GuiParams = {
   scene1ScrollVh: number;
   scene2ScrollVh: number;
@@ -361,7 +363,7 @@ export default function Home() {
             className="w-[min(84vw,420px)] rounded-2xl border border-white/10 bg-no-repeat shadow-[0_20px_60px_rgba(0,0,0,0.5)] will-change-[background-position]"
             style={{
               aspectRatio: "1 / 1",
-              backgroundImage: "url('/1aprilimage.png')",
+              backgroundImage: `url('${SCENE2_SPRITE_PATH}')`,
               backgroundSize: `${p.sequenceCols * 100}% ${p.sequenceRows * 100}%`,
             }}
             aria-label="OrangeKit packaging sequence animation"
@@ -372,16 +374,20 @@ export default function Home() {
             {p.sequenceCols} × {p.sequenceRows} sprite sheet).
           </p>
           <p className="text-xs text-white/45 sm:text-sm">
-            You can preview the source{" "}
+            Sprite sheet size:{" "}
+            <span className="text-white/60">5400 × 5400 px</span> · file{" "}
+            <span className="text-white/60">2.18 MB</span>.
+          </p>
+          <p className="max-w-xl break-all text-xs text-white/45 sm:text-sm">
+            Source:{" "}
             <a
-              href="/1aprilimage.png"
+              href={SCENE2_SPRITE_PATH}
               target="_blank"
               rel="noreferrer"
               className="underline underline-offset-2 hover:text-white/70"
             >
-              image
+              {SCENE2_SPRITE_PATH}
             </a>
-            .
           </p>
         </div>
       </section>
@@ -413,6 +419,11 @@ export default function Home() {
           <p className="text-xs text-white/45 sm:text-sm">
             Keep scrolling to scrub through {p.sequenceFrameCount} frames (
             {p.sequenceCols} × {p.sequenceRows} sprite sheet).
+          </p>
+          <p className="text-xs text-white/45 sm:text-sm">
+            Sprite sheet size:{" "}
+            <span className="text-white/60">5400 × 5400 px</span> · file{" "}
+            <span className="text-white/60">8.09 MB</span>.
           </p>
           <p className="text-xs text-white/45 sm:text-sm">
             You can preview the source{" "}
